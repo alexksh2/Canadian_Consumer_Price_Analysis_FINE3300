@@ -106,21 +106,35 @@ print(avg_monthly_change)
 #QUESTION 4
 
 #Find the province which experience the highest average change in the each of the category
-max_records = avg_monthly_change.loc[avg_monthly_change.groupby("Item")["Avg_Monthly_Change (%)"].idxmax()]
+
+# OLD CODE (incorrect - did not exclude Canada, which is not a province):
+# max_records = avg_monthly_change.loc[avg_monthly_change.groupby("Item")["Avg_Monthly_Change (%)"].idxmax()]
+
+# NEW CODE (correct - excludes Canada before finding the max province):
+provinces_only = avg_monthly_change[avg_monthly_change["Jurisdiction"] != "Canada"]
+max_records = provinces_only.loc[provinces_only.groupby("Item")["Avg_Monthly_Change (%)"].idxmax()]
 print(max_records)
 
 
 #QUESTION 5
 
-# Pivot to reshape the data for annual change in CPI for all services
-pivot_data = combined_df.pivot_table(index=["Jurisdiction", "Item"], columns="Month", values="CPI")
+# OLD CODE (incorrect - calculated annual change for ALL items instead of just "Services"):
+# pivot_data = combined_df.pivot_table(index=["Jurisdiction", "Item"], columns="Month", values="CPI")
+# pivot_data["Annual_Change"] = ((pivot_data["Dec-24"]-pivot_data["Jan-24"])/pivot_data["Jan-24"] * 100).round(2)
+# average_annual_change = round(pivot_data.groupby("Jurisdiction")["Annual_Change"].mean().reset_index(),1)
 
-# Calculate the annual change for each services
-pivot_data["Annual_Change"] = ((pivot_data["Dec-24"]-pivot_data["Jan-24"])/pivot_data["Jan-24"] * 100).round(2)
+# NEW CODE (correct - calculates annual change for "Services" item only):
+# Filter for the "Services" item only
+services_data = combined_df[combined_df["Item"] == "Services"]
 
-# Calculate the average annual change of services for each jurisdiction
-average_annual_change = round(pivot_data.groupby("Jurisdiction")["Annual_Change"].mean().reset_index(),1)
-average_annual_change
+# Pivot to reshape the data for annual change in CPI for services
+pivot_data = services_data.pivot_table(index=["Jurisdiction"], columns="Month", values="CPI")
+
+# Calculate the annual change for services
+pivot_data["Annual_Change"] = ((pivot_data["Dec-24"] - pivot_data["Jan-24"]) / pivot_data["Jan-24"] * 100).round(1)
+
+# Get the annual change for each jurisdiction
+average_annual_change = pivot_data[["Annual_Change"]].reset_index()
 
 print(average_annual_change)
       
